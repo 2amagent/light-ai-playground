@@ -6,3 +6,5 @@ __pycache__/
 conversations.json
 .DS_Store
 logs/
+
+agents/

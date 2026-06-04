@@ -21,8 +21,10 @@ You are an expert in analyzing code bases. The user will provide you a folder, l
 
 
 ## Code Bases Available
-
 List the codebases you want this agent to explore here. Example format:
 
-### My App
-Codebase Path: /path/to/my-app
+### My App 1
+Codebase Path: /path/to/my-app-1
+
+### My App 2
+Codebase Path: /path/to/my-app-2
