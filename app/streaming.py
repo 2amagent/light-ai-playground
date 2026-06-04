@@ -170,13 +170,13 @@ async def stream_chat_response(
 
     except litellm.exceptions.AuthenticationError as e:
         _logger.error("Auth error: %s", e)
-        yield emit({"type": EVT_ERROR, "message": f"Authentication error: {e}"})
+        yield emit({"type": EVT_ERROR, "message": "Authentication failed — check your API key"})
     except litellm.exceptions.RateLimitError as e:
         _logger.error("Rate limit: %s", e)
-        yield emit({"type": EVT_ERROR, "message": f"Rate limit exceeded: {e}"})
+        yield emit({"type": EVT_ERROR, "message": "Rate limit exceeded — try again later"})
     except litellm.exceptions.BadRequestError as e:
         _logger.error("Bad request: %s", e)
-        yield emit({"type": EVT_ERROR, "message": f"Bad request: {e}"})
+        yield emit({"type": EVT_ERROR, "message": "Bad request — check your model string and parameters"})
     except Exception as e:
         _logger.exception("Unexpected error in stream_chat_response")
-        yield emit({"type": EVT_ERROR, "message": str(e)})
+        yield emit({"type": EVT_ERROR, "message": "An unexpected error occurred — check the server logs"})

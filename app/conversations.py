@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,6 +90,7 @@ def save_if_persist():
 def _save():
     data = {cid: c.to_dict() for cid, c in _store.items()}
     PERSIST_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    os.chmod(PERSIST_FILE, 0o600)
 
 
 def _load():

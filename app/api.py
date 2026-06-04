@@ -1,14 +1,17 @@
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote as _url_quote
 
 _logger = logging.getLogger("ai_playground.api")
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .conversations import (
     create_conversation,
@@ -28,6 +31,32 @@ TOOL_RESUME_SIGNAL = "[tool_results_ready]"
 
 app = FastAPI(title="AI Playground", docs_url="/docs", redoc_url=None)
 
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "font-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'"
+)
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as _Request
+from starlette.responses import Response as _Response
+
+class _SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: _Request, call_next):
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = _CSP
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+app.add_middleware(_SecurityHeadersMiddleware)
+
 
 # ── Request models ────────────────────────────────────────────────────────────
 
@@ -38,12 +67,28 @@ class NewConversationRequest(BaseModel):
     base_url: str = ""
 
 
+_SAFE_NAME = re.compile(r'^[a-zA-Z0-9_-]+$')
+_AGENTS_ROOT = Path("agents").resolve()
+
+
+def _validate_agent_name(name: str) -> None:
+    """Raise 422 if name contains path traversal characters or is unsafe."""
+    if not _SAFE_NAME.match(name):
+        raise HTTPException(
+            status_code=422,
+            detail="Agent name may only contain letters, digits, hyphens and underscores",
+        )
+    resolved = (_AGENTS_ROOT / name).resolve()
+    if not str(resolved).startswith(str(_AGENTS_ROOT)):
+        raise HTTPException(status_code=422, detail="Invalid agent name")
+
+
 class AgentSaveRequest(BaseModel):
-    name: str
-    system_prompt: str
-    user_prompt: str = ""
-    description: str = ""
-    tools: list[str] = []
+    name: str = Field(..., max_length=64)
+    system_prompt: str = Field(..., max_length=32_000)
+    user_prompt: str = Field(default="", max_length=8_000)
+    description: str = Field(default="", max_length=500)
+    tools: list[str] = Field(default=[], max_items=20)
 
 
 class ChatRequest(BaseModel):
@@ -90,6 +135,7 @@ async def list_tools():
 @app.get("/api/agents/{name}")
 async def get_agent(name: str):
     """Load full agent data from disk."""
+    _validate_agent_name(name)
     agent_dir = Path("agents") / name
     if not agent_dir.is_dir() or not (agent_dir / "system.md").exists():
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")
@@ -109,6 +155,8 @@ async def get_agent(name: str):
 @app.put("/api/agents/{name}")
 async def save_agent(name: str, req: AgentSaveRequest):
     """Write agent files to disk. Renames the directory if req.name differs from name."""
+    _validate_agent_name(name)
+    _validate_agent_name(req.name)
     if not req.system_prompt.strip():
         raise HTTPException(status_code=422, detail="system_prompt is required")
 
@@ -322,7 +370,7 @@ async def export_conversation(cid: str):
     return Response(
         content=md_bytes,
         media_type="text/markdown",
-        headers={"Content-Disposition": f'attachment; filename="{cid}.md"'},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{_url_quote(cid)}.md"},
     )
 
 
