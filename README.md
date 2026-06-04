@@ -43,6 +43,22 @@ Agents can run `git`, `grep`, `find`, `cat` and a handful of other shell command
 
 ---
 
+## Screenshots
+
+**Attach images and ask questions about them**
+
+![Chat with image attachment](docs/screenshots/chat-with-image.png)
+
+**Agents ask structured questions with choice cards**
+
+![ask_user choice cards](docs/screenshots/ask-user-cards.png)
+
+**Multi-turn clarification before the agent proceeds**
+
+![Multi-turn questions](docs/screenshots/multi-turn-questions.png)
+
+---
+
 ## Quick start
 
 **Requirements:** Python 3.13, [uv](https://docs.astral.sh/uv/)
