@@ -2042,7 +2042,7 @@
   $("edit-agents-btn").addEventListener("click", openAgentEditor);
   attachBtn.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", e => handleFiles(e.target.files));
-  sendBtn.addEventListener("click", sendMessage);
+  sendBtn.addEventListener("click", () => sendMessage());
   searchInput.addEventListener("input", e => renderConvList(e.target.value));
 
   // New conversation modal listeners
