@@ -14,8 +14,11 @@ class Conversation:
         self.title: str = "New conversation"
         self.created_at: str = datetime.now(timezone.utc).isoformat()
         self.messages: list[dict] = []
-        # ephemeral; not persisted. Shape: {"id": str, "result_content": str}
-        self.pending_tool_call: dict | None = None
+        # ephemeral; not persisted.
+        # List of {"id": str, "result_content": str} — one entry per tool call in
+        # the last assistant turn. Empty string result_content means still waiting
+        # (ask_user fills it when the user answers; auto-tools pre-fill immediately).
+        self.pending_tool_calls: list[dict] = []
 
         # Per-conversation config — set at creation, not changed thereafter
         self.agent_name: str = "example"

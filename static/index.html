@@ -1128,7 +1128,8 @@
     isStreaming: false,
     pendingImages: [],
     reader: null,
-    pendingQuestionnaire: null,
+    pendingQuestionnaire: null,   // legacy single — kept for compat
+    pendingQuestionnaireQueue: [], // all unanswered questionnaire tool_call_ids this turn
   };
 
   // Curated model list for the modal dropdown
@@ -1443,6 +1444,7 @@
   // ctx = { content, div, bubble, rawContent, startTime }
   // All StreamEvent shapes are defined in app/events.py (GET /api/events-schema).
   function handleStreamEvent(evt, ctx) {
+    ctx.hadEvents = true;
     switch (evt.type) {
       case "delta":
         ctx.rawContent += evt.content;
@@ -1464,6 +1466,7 @@
 
       case "questionnaire":
         state.pendingQuestionnaire = evt;
+        state.pendingQuestionnaireQueue.push(evt.id);
         ctx.content.classList.remove("streaming-cursor");
         renderQuestionnaireCard(evt, ctx.div);
         setInputDisabled(true, "Please answer the question above…");
@@ -1589,10 +1592,18 @@
 
     card.innerHTML = `<p class="q-summary">Selected: ${escHtml(answerText)}</p>`;
 
-    setInputDisabled(false, "Message your agent… (Ctrl+Enter to send)");
-    state.pendingQuestionnaire = null;
+    // Remove this question from the pending queue
+    state.pendingQuestionnaireQueue = state.pendingQuestionnaireQueue.filter(id => id !== evt.id);
+    const allAnswered = state.pendingQuestionnaireQueue.length === 0;
 
-    await sendMessage(answerText);
+    if (allAnswered) {
+      state.pendingQuestionnaire = null;
+      setInputDisabled(false, "Message your agent… (Ctrl+Enter to send)");
+    }
+    // else: keep input disabled — more questions remain
+
+    // Always send the answer immediately; server queues it until all are in
+    await sendMessage(answerText, evt.id);
   }
 
   function setInputDisabled(disabled, placeholder) {
@@ -1602,9 +1613,10 @@
   }
 
   // ── Send message ───────────────────────────────────────────────────────
-  // textOverride: when set, use this text instead of reading msgInput
-  // (used by submitQuestionnaire to send the answer without touching the textarea)
-  async function sendMessage(textOverride) {
+  // textOverride: when set, use this text instead of reading msgInput.
+  // toolCallId: when set, forwarded to the server so it can match the answer
+  //             to the correct pending tool call (multi-question turns).
+  async function sendMessage(textOverride, toolCallId) {
     if (state.isStreaming) return;
 
     const text = textOverride !== undefined ? textOverride : msgInput.value.trim();
@@ -1652,7 +1664,10 @@
     setUIStreaming(true);
 
     // ctx carries mutable streaming state into handleStreamEvent
-    const ctx = { content, div, bubble: asstBubble, rawContent: "", startTime: performance.now() };
+    const ctx = { content, div, bubble: asstBubble, rawContent: "", startTime: performance.now(), hadEvents: false };
+
+    // Reset questionnaire queue at the start of each new LLM turn
+    if (!toolCallId) state.pendingQuestionnaireQueue = [];
 
     try {
       const resp = await fetch("/api/chat", {
@@ -1663,6 +1678,7 @@
           message: text,
           images,
           model_override: null,
+          tool_call_id: toolCallId || null,
         }),
       });
 
@@ -1691,6 +1707,12 @@
       }
 
       content.classList.remove("streaming-cursor");
+
+      // If the server returned an empty stream (intermediate questionnaire answer),
+      // remove the empty assistant row so the UI stays clean.
+      if (!ctx.rawContent && !ctx.hadEvents) {
+        asstRow.remove();
+      }
 
       // Store final text in client cache (questionnaire turns have no rawContent)
       if (ctx.rawContent) {

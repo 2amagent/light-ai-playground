@@ -96,6 +96,13 @@ class ChatRequest(BaseModel):
     message: str
     images: list[str] = []
     model_override: Optional[str] = None
+    tool_call_id: Optional[str] = None  # set by frontend when answering a questionnaire
+
+
+async def _empty_stream():
+    """Yields nothing — used to return an immediate empty SSE response."""
+    return
+    yield  # makes this an async generator
 
 
 # ── Agent discovery ───────────────────────────────────────────────────────────
@@ -254,30 +261,58 @@ async def chat(req: ChatRequest):
         content = req.message
 
     _logger.debug(
-        "Chat request | conv=%s | agent=%s | model=%s | pending_tool_call=%s",
-        conv.id[:8], conv.agent_name, conv.model, conv.pending_tool_call,
+        "Chat request | conv=%s | agent=%s | model=%s | pending_tool_calls=%s",
+        conv.id[:8], conv.agent_name, conv.model,
+        [(p["id"], bool(p["result_content"])) for p in conv.pending_tool_calls],
     )
 
     # ── Tool result injection (server-side only) ───────────────────────────
-    pending = conv.pending_tool_call
-    if pending is not None:
+    pending = conv.pending_tool_calls
+    if pending:
         is_auto_resume = req.message == TOOL_RESUME_SIGNAL
-        result_content = pending.get("result_content") or (
-            req.message if not is_auto_resume else ""
-        )
-        _logger.debug(
-            "Injecting tool result | tool_call_id=%s | auto_resume=%s | content=%r",
-            pending["id"], is_auto_resume, result_content,
-        )
-        conv.messages.append({
-            "role": "tool",
-            "tool_call_id": pending["id"],
-            "content": result_content,
-        })
-        conv.pending_tool_call = None
 
+        # For ask_user: fill the first entry whose result_content is still empty.
+        # The frontend sends the tool_call_id alongside the answer so we match exactly.
         if not is_auto_resume:
-            conv.messages.append({"role": "user", "content": req.message})
+            tc_id = getattr(req, "tool_call_id", None) or ""
+            matched = False
+            for entry in pending:
+                if tc_id and entry["id"] == tc_id and not entry["result_content"]:
+                    entry["result_content"] = req.message
+                    matched = True
+                    break
+            if not matched:
+                # Fallback: fill first empty slot (single-question case)
+                for entry in pending:
+                    if not entry["result_content"]:
+                        entry["result_content"] = req.message
+                        break
+
+        # Check whether all tool results are now available
+        all_filled = all(e["result_content"] for e in pending)
+
+        if all_filled:
+            _logger.debug("All tool results ready — injecting %d tool messages", len(pending))
+            for entry in pending:
+                conv.messages.append({
+                    "role": "tool",
+                    "tool_call_id": entry["id"],
+                    "content": entry["result_content"],
+                })
+            conv.pending_tool_calls = []
+
+            # Include the user's last answer as a user message (not for auto-resume)
+            if not is_auto_resume:
+                conv.messages.append({"role": "user", "content": req.message})
+        else:
+            remaining = sum(1 for e in pending if not e["result_content"])
+            _logger.debug("Waiting for %d more tool result(s) — not calling LLM yet", remaining)
+            # Respond with an empty stream — the frontend will show the next card
+            return StreamingResponse(
+                _empty_stream(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
     else:
         if not conv.messages:
             conv.title = req.message[:60] + ("..." if len(req.message) > 60 else "")
@@ -316,22 +351,24 @@ async def chat(req: ChatRequest):
                         "content": None,
                         "tool_calls": evt["tool_calls"],
                     })
-                    first_tc = evt["tool_calls"][0]
                     tool_results = evt.get("tool_results", {})
-                    conv.pending_tool_call = {
-                        "id": first_tc["id"],
-                        "result_content": tool_results.get(first_tc["id"], ""),
-                    }
+                    conv.pending_tool_calls = [
+                        {
+                            "id": tc["id"],
+                            "result_content": tool_results.get(tc["id"], ""),
+                        }
+                        for tc in evt["tool_calls"]
+                    ]
                     _logger.debug(
-                        "Tool call turn done | pending_tool_call=%s",
-                        conv.pending_tool_call,
+                        "Tool call turn done | pending_tool_calls=%s",
+                        [(p["id"], bool(p["result_content"])) for p in conv.pending_tool_calls],
                     )
                 else:
                     conv.messages.append({
                         "role": "assistant",
                         "content": "".join(full_content),
                     })
-                    conv.pending_tool_call = None
+                    conv.pending_tool_calls = []
                     _logger.debug(
                         "Text turn done | assistant content length=%d",
                         len("".join(full_content)),
