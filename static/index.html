@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Playground</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --bg2:       #161b22;
+      --bg3:       #21262d;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --text2:     #8b949e;
+      --accent:    #58a6ff;
+      --accent-bg: #1f6feb22;
+      --user-bg:   #1f2937;
+      --asst-bg:   #161b22;
+      --danger:    #f85149;
+      --success:   #3fb950;
+      --radius:    8px;
+      --sidebar:   260px;
+      --transition: 0.15s ease;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar);
+      min-width: var(--sidebar);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #sidebar-header {
+      padding: 16px 12px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #new-chat-btn {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity var(--transition);
+    }
+    #new-chat-btn:hover { opacity: 0.85; }
+
+    #search-input {
+      width: 100%;
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    #search-input:focus { border-color: var(--accent); }
+    #search-input::placeholder { color: var(--text2); }
+
+    #conv-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    #conv-list::-webkit-scrollbar { width: 4px; }
+    #conv-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .conv-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 1px 6px;
+      font-size: 12px;
+      color: var(--text2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background var(--transition), color var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .conv-item:hover { background: var(--bg3); color: var(--text); }
+    .conv-item.active { background: var(--accent-bg); color: var(--accent); }
+    .conv-item .conv-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    #sidebar-footer {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 6px;
+    }
+    .icon-btn {
+      flex: 1;
+      padding: 6px 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text2);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+    }
+    .icon-btn:hover { color: var(--text); border-color: var(--text2); }
+    .icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+
+    /* ── Main area ───────────────────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    #header {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      flex-shrink: 0;
+    }
+
+    #header-top {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      gap: 12px;
+    }
+
+    #agent-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    #model-badge {
+      font-size: 11px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 10px;
+      color: var(--text2);
+    }
+
+    #model-select {
+      margin-left: auto;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 12px;
+      padding: 4px 8px;
+      cursor: pointer;
+      outline: none;
+    }
+    #model-select:focus { border-color: var(--accent); }
+
+    #prompt-toggle {
+      font-size: 11px;
+      color: var(--text2);
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: all var(--transition);
+    }
+    #prompt-toggle:hover { border-color: var(--border); color: var(--text); }
+
+    #system-prompt-panel {
+      display: none;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text2);
+      background: var(--bg);
+      max-height: 160px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: "SF Mono", "Fira Code", monospace;
+      line-height: 1.5;
+    }
+    #system-prompt-panel.open { display: block; }
+
+    /* ── Messages ────────────────────────────────────────────────────────── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0 8px;
+    }
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Row: controls left/right alignment of the bubble */
+    .msg-row {
+      display: flex;
+      padding: 4px 20px;
+      gap: 8px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .msg-row.user    { justify-content: flex-end; }
+    .msg-row.assistant { justify-content: flex-start; }
+    .msg-row.system  { justify-content: center; }
+
+    /* Avatar dot */
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .msg-row.user    .msg-avatar { order: 2; background: var(--accent); color: #0d1117; }
+    .msg-row.assistant .msg-avatar { background: var(--bg3); color: var(--success); border: 1px solid var(--border); }
+
+    /* Bubble */
+    .msg-bubble {
+      max-width: 72%;
+      display: flex;
+      flex-direction: column;
+    }
+    .msg-row.user .msg-bubble { align-items: flex-end; }
+
+    .msg {
+      border-radius: 16px;
+      padding: 10px 14px;
+      font-size: 14px;
+      line-height: 1.65;
+      position: relative;
+      word-break: break-word;
+    }
+
+    /* User bubble — right, accent tint */
+    .msg-row.user .msg {
+      background: #1c3a5e;
+      border: 1px solid #2d5986;
+      border-bottom-right-radius: 4px;
+      color: var(--text);
+    }
+
+    /* Assistant bubble — left, neutral */
+    .msg-row.assistant .msg {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Automated / system messages — centred, dimmed, no bubble chrome */
+    .msg-row.system .msg {
+      background: transparent;
+      border: none;
+      font-size: 11px;
+      color: var(--text2);
+      opacity: 0.55;
+      padding: 2px 8px;
+      font-style: italic;
+    }
+
+    .msg-content pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      overflow-x: auto;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    .msg-content code:not(pre code) {
+      background: var(--bg3);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+    .msg-content p { margin-bottom: 8px; }
+    .msg-content p:last-child { margin-bottom: 0; }
+    .msg-content ul, .msg-content ol { padding-left: 20px; margin-bottom: 8px; }
+    .msg-content li { margin-bottom: 4px; }
+    .msg-content h1, .msg-content h2, .msg-content h3 {
+      margin: 14px 0 6px;
+      color: var(--text);
+    }
+    .msg-content blockquote {
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+      color: var(--text2);
+      margin: 8px 0;
+    }
+    .msg-content table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    .msg-content th, .msg-content td {
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    .msg-content th { background: var(--bg3); }
+
+    .msg-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .msg-action-btn {
+      font-size: 10px;
+      padding: 3px 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .msg-action-btn:hover { color: var(--text); border-color: var(--text2); }
+
+    .msg-meta {
+      font-size: 10px;
+      color: var(--text2);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+
+    .img-thumbnail {
+      max-width: 180px;
+      max-height: 120px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      margin: 4px 4px 4px 0;
+      object-fit: cover;
+    }
+
+    .img-strip {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────────────────── */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text2);
+      text-align: center;
+      padding: 40px;
+    }
+    #empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    #empty-state h2 { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    #empty-state p { font-size: 14px; line-height: 1.6; max-width: 380px; }
+
+    /* ── Input area ──────────────────────────────────────────────────────── */
+    #input-area {
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 14px 16px;
+      flex-shrink: 0;
+    }
+
+    #pending-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .pending-thumb-wrapper {
+      position: relative;
+    }
+
+    .pending-thumb {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .remove-thumb {
+      position: absolute;
+      top: -4px; right: -4px;
+      width: 16px; height: 16px;
+      background: var(--danger);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    #input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    #attach-btn {
+      padding: 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 16px;
+      flex-shrink: 0;
+      transition: all var(--transition);
+      height: 40px;
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #attach-btn:hover { color: var(--text); border-color: var(--text2); }
+
+    #file-input { display: none; }
+
+    #msg-input {
+      flex: 1;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+      padding: 9px 12px;
+      outline: none;
+      resize: none;
+      min-height: 40px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: inherit;
+      line-height: 1.5;
+      transition: border-color var(--transition);
+    }
+    #msg-input:focus { border-color: var(--accent); }
+    #msg-input::placeholder { color: var(--text2); }
+
+    #send-btn {
+      padding: 8px 16px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #0d1117;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      height: 40px;
+      transition: opacity var(--transition);
+    }
+    #send-btn:hover:not(:disabled) { opacity: 0.85; }
+    #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #input-hint {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 6px;
+      text-align: right;
+    }
+
+    /* ── Streaming cursor ────────────────────────────────────────────────── */
+    .streaming-cursor::after {
+      content: "▋";
+      animation: blink 0.7s step-end infinite;
+      color: var(--accent);
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Error toast ─────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--danger);
+      color: white;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      display: none;
+      z-index: 100;
+      max-width: 500px;
+      text-align: center;
+    }
+    #toast.show { display: block; }
+
+    /* ── Loading dots ────────────────────────────────────────────────────── */
+    .dots::after {
+      content: "...";
+      animation: dots 1.2s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%, 100% { content: ""; }
+      25% { content: "."; }
+      50% { content: ".."; }
+      75% { content: "..."; }
+    }
+
+    /* ── Tool result accordion ──────────────────────────────────────────── */
+    .tool-result-card {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .tool-result-card.tool-result-error { border-color: var(--danger); }
+
+    .tool-result-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      padding: 5px 10px;
+      background: var(--bg3);
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text2);
+      text-align: left;
+      transition: background var(--transition);
+      user-select: none;
+    }
+    .tool-result-toggle:hover { background: var(--border); }
+    .tool-result-error .tool-result-toggle { color: var(--danger); }
+
+    .tool-result-chevron {
+      font-style: normal;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .tool-result-card.open .tool-result-chevron { transform: rotate(90deg); }
+
+    .tool-result-body {
+      display: none;
+      border-top: 1px solid var(--border);
+    }
+    .tool-result-card.open .tool-result-body { display: block; }
+
+    .tool-result-output {
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text);
+      background: var(--bg);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* ── Questionnaire card ──────────────────────────────────────────────── */
+    .questionnaire-card {
+      margin-top: 12px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      background: var(--accent-bg);
+    }
+    .q-question {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-option-btn {
+      padding: 8px 14px;
+      text-align: left;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .q-option-btn:hover            { border-color: var(--accent); color: var(--accent); }
+    .q-option-btn.selected         { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+    .q-submit-btn {
+      margin-top: 10px;
+      padding: 7px 16px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #0d1117;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity var(--transition);
+    }
+    .q-submit-btn:hover:not(:disabled) { opacity: 0.85; }
+    .q-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .q-summary { font-size: 13px; color: var(--text2); font-style: italic; }
+
+    /* ── Conv subtitle (agent + model) ──────────────────────────────────── */
+    .conv-subtitle {
+      font-size: 10px;
+      opacity: 0.6;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    /* ── New Conversation Modal ──────────────────────────────────────────── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+
+    #modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 460px;
+      max-width: 95vw;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    #modal h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #modal-close {
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    #modal-close:hover { color: var(--text); }
+
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text2);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .modal-field label .optional {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-left: 4px;
+      opacity: 0.7;
+    }
+
+    .modal-field select,
+    .modal-field input[type="text"],
+    .modal-field input[type="password"],
+    .modal-field textarea {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .modal-field select:focus,
+    .modal-field input:focus { border-color: var(--accent); }
+    .modal-field input::placeholder { color: var(--text2); }
+
+    .modal-field .hint {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 4px;
+      opacity: 0.75;
+    }
+
+    .modal-remember {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text2);
+      cursor: pointer;
+    }
+
+    #modal-submit {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity var(--transition);
+    }
+    #modal-submit:hover { opacity: 0.85; }
+    #modal-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Edit Agents button ──────────────────────────────────────────────── */
+    #edit-agents-btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 7px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text2);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all var(--transition);
+    }
+    #edit-agents-btn:hover { color: var(--text); border-color: var(--text2); }
+
+    /* ── Per-conversation inline delete ─────────────────────────────────── */
+    .conv-delete-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 0 2px;
+      line-height: 1;
+      flex-shrink: 0;
+      border-radius: 3px;
+    }
+    .conv-item:hover .conv-delete-btn { display: flex; align-items: center; }
+    .conv-delete-btn:hover { color: var(--danger); background: rgba(248,81,73,0.1); }
+
+    /* ── Agent editor overlay ────────────────────────────────────────────── */
+    #agent-editor-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #agent-editor-overlay.open { display: flex; }
+
+    #agent-editor {
+      width: 860px;
+      max-width: 96vw;
+      height: 82vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    #ae-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #ae-header h2 { font-size: 15px; font-weight: 600; color: var(--text); }
+    #ae-close-btn {
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+    }
+    #ae-close-btn:hover { color: var(--text); }
+
+    #ae-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #ae-list-pane {
+      width: 190px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #ae-agent-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .ae-agent-item {
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text2);
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 1px 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all var(--transition);
+    }
+    .ae-agent-item:hover { background: var(--bg3); color: var(--text); }
+    .ae-agent-item.active { background: var(--accent-bg); color: var(--accent); }
+
+    #ae-new-agent-btn {
+      margin: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--text2);
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+    }
+    #ae-new-agent-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    #ae-editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 20px;
+      overflow: hidden;
+      gap: 0;
+    }
+    #ae-editor-pane .modal-field { margin-bottom: 10px; }
+    #ae-editor-pane .modal-field label { font-size: 11px; }
+    #ae-editor-pane #ae-description { resize: none; height: 48px; }
+
+    #ae-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+    .ae-tab {
+      padding: 7px 16px;
+      font-size: 13px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .ae-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .ae-tab-panel { display: none; flex: 1; overflow: hidden; padding-top: 10px; }
+    .ae-tab-panel.active { display: flex; flex-direction: column; }
+    .ae-tab-panel textarea {
+      flex: 1;
+      resize: none;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      padding: 10px 12px;
+      line-height: 1.55;
+      outline: none;
+    }
+    .ae-tab-panel textarea:focus { border-color: var(--accent); }
+
+    #ae-tools-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 4px 0;
+      overflow-y: auto;
+    }
+    .ae-tool-item { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .ae-tool-item input[type=checkbox] { margin-top: 2px; flex-shrink: 0; cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; }
+    .ae-tool-name { font-size: 13px; color: var(--text); font-weight: 500; }
+    .ae-tool-desc { font-size: 11px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+
+    #ae-editor-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      margin-top: 10px;
+      flex-shrink: 0;
+    }
+    #ae-save-btn {
+      padding: 8px 22px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity var(--transition);
+    }
+    #ae-save-btn:hover { opacity: 0.85; }
+    #ae-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<!-- ── New Conversation Modal ──────────────────────────────────────────── -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>
+      New Conversation
+      <button id="modal-close">×</button>
+    </h2>
+
+    <div class="modal-field">
+      <label>Agent</label>
+      <select id="modal-agent"></select>
+    </div>
+
+    <div class="modal-field">
+      <label>Model</label>
+      <input id="modal-model" type="text" placeholder="e.g. anthropic/claude-haiku-4-5" autocomplete="off" />
+    </div>
+
+    <div class="modal-field">
+      <label>
+        API Key
+        <span class="optional" id="modal-key-hint">(optional — uses env var if blank)</span>
+      </label>
+      <input id="modal-apikey" type="password" placeholder="sk-..." autocomplete="off" />
+      <label class="modal-remember">
+        <input id="modal-remember" type="checkbox" />
+        Remember for this session
+      </label>
+    </div>
+
+    <div class="modal-field">
+      <label>
+        Base URL
+        <span class="optional">(optional — Together.ai, Ollama, custom endpoint)</span>
+      </label>
+      <input id="modal-baseurl" type="text" placeholder="https://api.together.xyz/v1" autocomplete="off" />
+    </div>
+
+    <button id="modal-submit">Start Chat</button>
+  </div>
+</div>
+
+<!-- ── Agent Editor Overlay ─────────────────────────────────────────────── -->
+<div id="agent-editor-overlay">
+  <div id="agent-editor">
+
+    <div id="ae-header">
+      <h2>Agents</h2>
+      <button id="ae-close-btn">×</button>
+    </div>
+
+    <div id="ae-body">
+      <!-- Left: agent list -->
+      <div id="ae-list-pane">
+        <div id="ae-agent-list"></div>
+        <button id="ae-new-agent-btn">+ New Agent</button>
+      </div>
+
+      <!-- Right: editor -->
+      <div id="ae-editor-pane">
+        <div class="modal-field">
+          <label>Name</label>
+          <input id="ae-name" type="text" placeholder="my-agent" autocomplete="off" />
+        </div>
+        <div class="modal-field">
+          <label>Description</label>
+          <textarea id="ae-description" placeholder="What this agent does..."></textarea>
+        </div>
+
+        <div id="ae-tabs">
+          <button class="ae-tab active" data-tab="system">System Prompt</button>
+          <button class="ae-tab" data-tab="user">User Prompt</button>
+          <button class="ae-tab" data-tab="tools">Tools</button>
+        </div>
+
+        <div id="ae-tab-system" class="ae-tab-panel active">
+          <textarea id="ae-system" placeholder="You are a helpful assistant..."></textarea>
+        </div>
+        <div id="ae-tab-user" class="ae-tab-panel">
+          <textarea id="ae-user" placeholder="Optional — prepended to every user message"></textarea>
+        </div>
+        <div id="ae-tab-tools" class="ae-tab-panel">
+          <div id="ae-tools-list"></div>
+        </div>
+
+        <div id="ae-editor-footer">
+          <button id="ae-save-btn">Save Agent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <button id="new-chat-btn">
+      <span>+</span> New Chat
+      <span style="margin-left:auto;font-size:10px;opacity:0.7">⌘N</span>
+    </button>
+    <button id="edit-agents-btn">✎ Edit Agents</button>
+    <input id="search-input" type="text" placeholder="Search conversations..." autocomplete="off" />
+  </div>
+  <div id="conv-list"></div>
+</div>
+
+<!-- ── Main ────────────────────────────────────────────────────────────── -->
+<div id="main">
+  <div id="header">
+    <div id="header-top">
+      <span id="agent-name">AI Playground</span>
+      <span id="model-badge"></span>
+      <button id="prompt-toggle" style="display:none">System Prompt ▾</button>
+    </div>
+    <div id="system-prompt-panel"></div>
+  </div>
+
+  <div id="messages">
+    <div id="empty-state">
+      <div class="icon">⚗️</div>
+      <h2>AI Playground</h2>
+      <p>Select a conversation or start a new one. Send text, images, or paste screenshots to interact with your agent.</p>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div id="pending-images"></div>
+    <div id="input-row">
+      <button id="attach-btn" title="Attach image (or paste)">📎</button>
+      <input id="file-input" type="file" accept="image/*" multiple />
+      <textarea id="msg-input" placeholder="Message your agent… (Ctrl+Enter to send)" rows="1"></textarea>
+      <button id="send-btn">Send</button>
+    </div>
+    <div id="input-hint">Ctrl+Enter send · Ctrl+N new chat · Esc cancel</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────
+  const state = {
+    conversations: [],
+    activeId: null,
+    isStreaming: false,
+    pendingImages: [],
+    reader: null,
+    pendingQuestionnaire: null,
+  };
+
+  // Curated model list for the modal dropdown
+  const KNOWN_MODELS = [
+    "anthropic/claude-haiku-4-5",
+    "anthropic/claude-sonnet-4-6",
+    "anthropic/claude-opus-4-5",
+    "openai/gpt-4o",
+    "openai/gpt-4o-mini",
+    "together_ai/Qwen/Qwen2.5-7B-Instruct-Turbo",
+    "ollama/llama3",
+  ];
+
+  // Provider → env var name (for the "uses X from environment" hint)
+  const PROVIDER_ENV = {
+    anthropic: "ANTHROPIC_API_KEY",
+    openai: "OPENAI_API_KEY",
+    together_ai: "TOGETHERAI_API_KEY",
+    replicate: "REPLICATE_API_KEY",
+    ollama: "",
+    groq: "GROQ_API_KEY",
+    mistral: "MISTRAL_API_KEY",
+    gemini: "GEMINI_API_KEY",
+  };
+
+  // ── DOM refs ───────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const convList    = $("conv-list");
+  const messages    = $("messages");
+  const msgInput    = $("msg-input");
+  const sendBtn     = $("send-btn");
+  const newChatBtn  = $("new-chat-btn");
+  const searchInput = $("search-input");
+  const fileInput   = $("file-input");
+  const attachBtn   = $("attach-btn");
+  const pendingImgs = $("pending-images");
+  const agentName   = $("agent-name");
+  const modelBadge  = $("model-badge");
+  const promptToggle = $("prompt-toggle");
+  const promptPanel  = $("system-prompt-panel");
+
+  // Modal refs
+  const modalOverlay  = $("modal-overlay");
+  const modalAgent    = $("modal-agent");
+  const modalModel    = $("modal-model");
+  const modalApiKey   = $("modal-apikey");
+  const modalRemember = $("modal-remember");
+  const modalBaseUrl  = $("modal-baseurl");
+  const modalSubmit   = $("modal-submit");
+  const modalKeyHint  = $("modal-key-hint");
+
+  // ── marked config ──────────────────────────────────────────────────────
+  marked.setOptions({
+    highlight(code, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        return hljs.highlight(code, { language: lang }).value;
+      }
+      return hljs.highlightAuto(code).value;
+    },
+    breaks: true,
+    gfm: true,
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────────
+  async function init() {
+    await loadConversations();
+    if (state.conversations.length > 0) {
+      await selectConversation(state.conversations[0].id);
+    }
+  }
+
+  async function loadAgentInfo() {
+    // no-op: agent info is now per-conversation
+  }
+
+  async function loadConversations() {
+    try {
+      const r = await fetch("/api/conversations");
+      state.conversations = await r.json();
+      renderConvList();
+    } catch (e) {
+      console.error("Failed to load conversations", e);
+    }
+  }
+
+  // ── Conversation list rendering ────────────────────────────────────────
+  function renderConvList(filter = "") {
+    const lower = filter.toLowerCase();
+    const filtered = filter
+      ? state.conversations.filter(c => c.title.toLowerCase().includes(lower))
+      : state.conversations;
+
+    convList.innerHTML = filtered.length === 0
+      ? `<div style="padding:16px 14px;font-size:12px;color:var(--text2)">${filter ? "No matches" : "No conversations yet"}</div>`
+      : filtered.map(c => `
+        <div class="conv-item ${c.id === state.activeId ? "active" : ""}"
+             data-id="${c.id}" title="${escHtml(c.title)}">
+          <span class="conv-dot"></span>
+          <span style="min-width:0;flex:1;overflow:hidden">
+            <span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.title)}</span>
+            <span class="conv-subtitle">${escHtml(c.agent_name || "")} · ${escHtml(c.model || "")}</span>
+          </span>
+          <button class="conv-delete-btn" data-id="${c.id}" title="Delete conversation">×</button>
+        </div>
+      `).join("");
+
+    convList.querySelectorAll(".conv-item").forEach(el => {
+      el.addEventListener("click", e => {
+        if (e.target.classList.contains("conv-delete-btn")) return;
+        selectConversation(el.dataset.id);
+      });
+    });
+    convList.querySelectorAll(".conv-delete-btn").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        deleteConversation(btn.dataset.id);
+      });
+    });
+  }
+
+  async function selectConversation(id) {
+    state.activeId = id;
+    renderConvList(searchInput.value);
+    $("empty-state")?.remove();
+    messages.innerHTML = "";
+
+    // Update header to show active conversation's agent + model
+    const conv = state.conversations.find(c => c.id === id);
+    if (conv) {
+      agentName.textContent = conv.agent_name || "AI Playground";
+      modelBadge.textContent = conv.model || "";
+    }
+
+    renderStoredMessages(id);
+  }
+
+  // Client-side message cache keyed by conversation id
+  const msgCache = {};  // { [convId]: [{role, content, images?, meta?}] }
+
+  function renderStoredMessages(convId) {
+    messages.innerHTML = "";
+    const stored = msgCache[convId] || [];
+    stored.forEach(m => appendMessageFromCache(m));
+    scrollToBottom();
+  }
+
+  const TOOL_RESUME_SIGNAL = "[tool_results_ready]";
+
+  function _makeRow(role) {
+    const row = document.createElement("div");
+    row.className = `msg-row ${role}`;
+
+    if (role !== "system") {
+      const avatar = document.createElement("div");
+      avatar.className = "msg-avatar";
+      const activeConv = state.conversations.find(c => c.id === state.activeId);
+      avatar.textContent = role === "user" ? "U" : (activeConv?.agent_name || "A")[0].toUpperCase();
+      row.appendChild(avatar);
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = "msg-bubble";
+    row.appendChild(bubble);
+    return { row, bubble };
+  }
+
+  function appendMessageFromCache(m) {
+    // Automated resume signals are shown dimmed as system messages
+    const isAutoSignal = m.role === "user" && m.content === TOOL_RESUME_SIGNAL;
+    const rowRole = isAutoSignal ? "system" : m.role;
+
+    const { row, bubble } = _makeRow(rowRole);
+
+    const div = document.createElement("div");
+    div.className = "msg";
+    bubble.appendChild(div);
+
+    // Images (user only)
+    if (m.images && m.images.length > 0) {
+      const strip = document.createElement("div");
+      strip.className = "img-strip";
+      m.images.forEach(src => {
+        const img = document.createElement("img");
+        img.src = src;
+        img.className = "img-thumbnail";
+        strip.appendChild(img);
+      });
+      div.appendChild(strip);
+    }
+
+    const content = document.createElement("div");
+    content.className = "msg-content";
+    if (m.role === "assistant") {
+      content.innerHTML = marked.parse(m.content || "");
+      content.querySelectorAll("pre code").forEach(el => hljs.highlightElement(el));
+    } else if (isAutoSignal) {
+      content.textContent = "⚙ continuing…";
+    } else {
+      content.textContent = m.content || "";
+    }
+    div.appendChild(content);
+
+    if (m.meta) {
+      const meta = document.createElement("div");
+      meta.className = "msg-meta";
+      meta.textContent = m.meta;
+      bubble.appendChild(meta);
+    }
+
+    if (m.role === "assistant" && !isAutoSignal) {
+      const actions = document.createElement("div");
+      actions.className = "msg-actions";
+      const retryBtn = document.createElement("button");
+      retryBtn.className = "msg-action-btn";
+      retryBtn.textContent = "↺ Retry";
+      retryBtn.addEventListener("click", () => retryLast());
+      actions.appendChild(retryBtn);
+      bubble.appendChild(actions);
+    }
+
+    messages.appendChild(row);
+    return { row, bubble, div };
+  }
+
+  // ── New conversation modal ────────────────────────────────────────────
+  async function newConversation() {
+    // Populate agent dropdown
+    try {
+      const r = await fetch("/api/agents");
+      const agents = await r.json();
+      modalAgent.innerHTML = agents.map(a =>
+        `<option value="${escHtml(a.name)}">${escHtml(a.name)}${a.description ? " — " + escHtml(a.description.slice(0, 50)) : ""}</option>`
+      ).join("");
+    } catch {
+      modalAgent.innerHTML = '<option value="">Could not load agents</option>';
+    }
+
+    // Populate model dropdown with known models + free-text fallback
+    modalModel.value = KNOWN_MODELS[0];
+
+    // Update the key hint when model changes
+    function updateKeyHint() {
+      const prefix = modalModel.value.split("/")[0];
+      const envVar = PROVIDER_ENV[prefix];
+      modalKeyHint.textContent = envVar
+        ? `(optional — uses ${envVar} if blank)`
+        : "(optional)";
+    }
+    modalModel.addEventListener("input", updateKeyHint);
+    updateKeyHint();
+
+    // Pre-fill API key from session storage if remembered
+    function prefillKey() {
+      const prefix = modalModel.value.split("/")[0];
+      modalApiKey.value = sessionStorage.getItem(`apikey_${prefix}`) || "";
+    }
+    modalModel.addEventListener("input", prefillKey);
+    prefillKey();
+
+    modalOverlay.classList.add("open");
+    modalModel.focus();
+  }
+
+  function closeModal() {
+    modalOverlay.classList.remove("open");
+  }
+
+  async function submitModal() {
+    const agentNameVal = modalAgent.value;
+    const modelVal = modalModel.value.trim();
+    const apiKeyVal = modalApiKey.value.trim();
+    const baseUrlVal = modalBaseUrl.value.trim();
+
+    if (!agentNameVal || !modelVal) {
+      showToast("Agent and model are required");
+      return;
+    }
+
+    // Remember key in session storage if checkbox checked
+    if (modalRemember.checked && apiKeyVal) {
+      const prefix = modelVal.split("/")[0];
+      sessionStorage.setItem(`apikey_${prefix}`, apiKeyVal);
+    }
+
+    modalSubmit.disabled = true;
+    try {
+      const r = await fetch("/api/conversations/new", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_name: agentNameVal,
+          model: modelVal,
+          api_key: apiKeyVal,
+          base_url: baseUrlVal,
+        }),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const conv = await r.json();
+      state.conversations.unshift(conv);
+      msgCache[conv.id] = [];
+      closeModal();
+      await selectConversation(conv.id);
+      msgInput.focus();
+    } catch (e) {
+      showToast("Failed to create conversation: " + e.message);
+    } finally {
+      modalSubmit.disabled = false;
+    }
+  }
+
+  // ── Stream event dispatcher ────────────────────────────────────────────
+  // ctx = { content, div, bubble, rawContent, startTime }
+  // All StreamEvent shapes are defined in app/events.py (GET /api/events-schema).
+  function handleStreamEvent(evt, ctx) {
+    switch (evt.type) {
+      case "delta":
+        ctx.rawContent += evt.content;
+        ctx.content.innerHTML = marked.parse(ctx.rawContent);
+        ctx.content.querySelectorAll("pre code").forEach(el => hljs.highlightElement(el));
+        scrollToBottom();
+        break;
+
+      case "thinking":
+        // Future: render as collapsible reasoning block
+        console.debug("[thinking]", evt.content);
+        break;
+
+      case "tool_result":
+        renderToolResult(evt, ctx.div);
+        // Flag for auto-resume after stream closes (checked outside finally block)
+        ctx.autoResume = true;
+        break;
+
+      case "questionnaire":
+        state.pendingQuestionnaire = evt;
+        ctx.content.classList.remove("streaming-cursor");
+        renderQuestionnaireCard(evt, ctx.div);
+        setInputDisabled(true, "Please answer the question above…");
+        scrollToBottom();
+        break;
+
+      case "done": {
+        const elapsed = ((performance.now() - ctx.startTime) / 1000).toFixed(1);
+        const metaEl = document.createElement("div");
+        metaEl.className = "msg-meta";
+        metaEl.textContent = evt.usage
+          ? `↓ ${evt.usage.completion} tokens · ${elapsed}s`
+          : `${elapsed}s`;
+        ctx.bubble.appendChild(metaEl);
+        // Only add retry if actual text was produced (not a tool-call-only turn)
+        if (ctx.rawContent) {
+          const actions = document.createElement("div");
+          actions.className = "msg-actions";
+          const retryBtn = document.createElement("button");
+          retryBtn.className = "msg-action-btn";
+          retryBtn.textContent = "↺ Retry";
+          retryBtn.addEventListener("click", () => retryLast());
+          actions.appendChild(retryBtn);
+          ctx.bubble.appendChild(actions);
+        }
+        break;
+      }
+
+      case "error":
+        showToast(evt.message);
+        break;
+
+      default:
+        console.warn("[stream] unknown event type:", evt.type, evt);
+    }
+  }
+
+  // ── Tool result card ───────────────────────────────────────────────────
+  function renderToolResult(evt, parentDiv) {
+    const card = document.createElement("div");
+    card.className = "tool-result-card" + (evt.is_error ? " tool-result-error" : "");
+
+    const toggle = document.createElement("button");
+    toggle.className = "tool-result-toggle";
+    toggle.innerHTML =
+      `<i class="tool-result-chevron">›</i>` +
+      `<span>${evt.is_error ? "⚠ Tool error" : "⚙ Tool result"}</span>`;
+    toggle.addEventListener("click", () => {
+      card.classList.toggle("open");
+      scrollToBottom();
+    });
+    card.appendChild(toggle);
+
+    const body = document.createElement("div");
+    body.className = "tool-result-body";
+
+    const pre = document.createElement("pre");
+    pre.className = "tool-result-output";
+    pre.textContent = evt.content || "(no output)";
+    body.appendChild(pre);
+    card.appendChild(body);
+
+    parentDiv.appendChild(card);
+    scrollToBottom();
+  }
+
+  // ── Questionnaire card ─────────────────────────────────────────────────
+  function renderQuestionnaireCard(evt, parentDiv) {
+    const card = document.createElement("div");
+    card.className = "questionnaire-card";
+    card.dataset.qid = evt.id;
+
+    const qEl = document.createElement("p");
+    qEl.className = "q-question";
+    qEl.textContent = evt.question;
+    card.appendChild(qEl);
+
+    const optionsEl = document.createElement("div");
+    optionsEl.className = "q-options";
+    const selectedIds = new Set();
+    let submitBtn = null;
+
+    evt.options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "q-option-btn";
+      btn.dataset.optId = opt.id;
+      btn.textContent = opt.label;
+      btn.addEventListener("click", () => {
+        if (evt.style === "single") {
+          submitQuestionnaire(evt, [opt.id], card);
+        } else {
+          if (selectedIds.has(opt.id)) {
+            selectedIds.delete(opt.id);
+            btn.classList.remove("selected");
+          } else {
+            selectedIds.add(opt.id);
+            btn.classList.add("selected");
+          }
+          if (submitBtn) submitBtn.disabled = selectedIds.size === 0;
+        }
+      });
+      optionsEl.appendChild(btn);
+    });
+    card.appendChild(optionsEl);
+
+    if (evt.style === "multi") {
+      submitBtn = document.createElement("button");
+      submitBtn.className = "q-submit-btn";
+      submitBtn.textContent = "Submit";
+      submitBtn.disabled = true;
+      submitBtn.addEventListener("click", () => submitQuestionnaire(evt, [...selectedIds], card));
+      card.appendChild(submitBtn);
+    }
+
+    parentDiv.appendChild(card);
+  }
+
+  async function submitQuestionnaire(evt, selectedIds, card) {
+    const selectedLabels = evt.options
+      .filter(o => selectedIds.includes(o.id))
+      .map(o => o.label);
+    const answerText = selectedLabels.join(", ");
+
+    card.innerHTML = `<p class="q-summary">Selected: ${escHtml(answerText)}</p>`;
+
+    setInputDisabled(false, "Message your agent… (Ctrl+Enter to send)");
+    state.pendingQuestionnaire = null;
+
+    await sendMessage(answerText);
+  }
+
+  function setInputDisabled(disabled, placeholder) {
+    msgInput.disabled = disabled;
+    sendBtn.disabled = disabled;
+    msgInput.placeholder = placeholder;
+  }
+
+  // ── Send message ───────────────────────────────────────────────────────
+  // textOverride: when set, use this text instead of reading msgInput
+  // (used by submitQuestionnaire to send the answer without touching the textarea)
+  async function sendMessage(textOverride) {
+    if (state.isStreaming) return;
+
+    const text = textOverride !== undefined ? textOverride : msgInput.value.trim();
+    if (!text && state.pendingImages.length === 0) return;
+
+    if (!state.activeId) {
+      await newConversation();
+    }
+
+    const images = state.pendingImages.map(p => p.dataUri);
+
+    // Add user message to cache and render
+    const userMsg = { role: "user", content: text, images };
+    if (!msgCache[state.activeId]) msgCache[state.activeId] = [];
+    msgCache[state.activeId].push(userMsg);
+    appendMessageFromCache(userMsg);
+
+    // Only clear the textarea when the user typed (not a programmatic send)
+    if (textOverride === undefined) {
+      msgInput.value = "";
+      autoResizeTextarea();
+      clearPendingImages();
+    }
+    scrollToBottom();
+
+    // Update conversation title locally
+    const conv = state.conversations.find(c => c.id === state.activeId);
+    if (conv && conv.title === "New conversation") {
+      conv.title = text.slice(0, 60) + (text.length > 60 ? "..." : "");
+      renderConvList(searchInput.value);
+    }
+
+    // Create assistant message placeholder (bubble layout)
+    const { row: asstRow, bubble: asstBubble } = _makeRow("assistant");
+    const div = document.createElement("div");
+    div.className = "msg";
+    asstBubble.appendChild(div);
+    const content = document.createElement("div");
+    content.className = "msg-content streaming-cursor";
+    div.appendChild(content);
+    messages.appendChild(asstRow);
+    scrollToBottom();
+
+    state.isStreaming = true;
+    setUIStreaming(true);
+
+    // ctx carries mutable streaming state into handleStreamEvent
+    const ctx = { content, div, bubble: asstBubble, rawContent: "", startTime: performance.now() };
+
+    try {
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversation_id: state.activeId,
+          message: text,
+          images,
+          model_override: null,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${resp.status}`);
+      }
+
+      state.reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await state.reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop();
+
+        for (const part of parts) {
+          if (!part.startsWith("data: ")) continue;
+          let evt;
+          try { evt = JSON.parse(part.slice(6)); } catch { continue; }
+          handleStreamEvent(evt, ctx);
+        }
+      }
+
+      content.classList.remove("streaming-cursor");
+
+      // Store final text in client cache (questionnaire turns have no rawContent)
+      if (ctx.rawContent) {
+        const elapsed = ((performance.now() - ctx.startTime) / 1000).toFixed(1);
+        msgCache[state.activeId].push({
+          role: "assistant",
+          content: ctx.rawContent,
+          meta: `↓ ... tokens · ${elapsed}s`,
+        });
+      }
+
+    } catch (e) {
+      content.classList.remove("streaming-cursor");
+      if (e.name !== "AbortError" && !e.message?.includes("cancel")) {
+        content.innerHTML = `<span style="color:var(--danger)">Error: ${escHtml(e.message)}</span>`;
+        showToast(e.message);
+      }
+    } finally {
+      state.isStreaming = false;
+      state.reader = null;
+      setUIStreaming(false);
+    }
+
+    // Auto-resume after stream fully closes and isStreaming is false.
+    // Must be outside try/finally so sendMessage() guard doesn't block it.
+    if (ctx.autoResume) {
+      ctx.autoResume = false;
+      await sendMessage("[tool_results_ready]");
+    }
+  }
+
+  function cancelStream() {
+    if (state.reader) {
+      state.reader.cancel();
+      state.reader = null;
+    }
+    state.isStreaming = false;
+    setUIStreaming(false);
+    // Remove streaming cursor from last assistant message
+    document.querySelectorAll(".streaming-cursor").forEach(el => {
+      el.classList.remove("streaming-cursor");
+    });
+  }
+
+  async function retryLast() {
+    if (state.isStreaming || !state.activeId) return;
+    try {
+      await fetch(`/api/conversations/${state.activeId}/retry`, { method: "POST" });
+      // Remove last messages from cache and re-render
+      const cache = msgCache[state.activeId] || [];
+      if (cache.length > 0 && cache[cache.length - 1].role === "assistant") {
+        cache.pop();
+      }
+      const lastUser = [...cache].reverse().find(m => m.role === "user");
+      if (!lastUser) return;
+
+      // Remove last rendered row (assistant bubble)
+      const rows = messages.querySelectorAll(".msg-row");
+      if (rows.length >= 1) rows[rows.length - 1].remove();
+
+      // Re-send by putting text back and triggering send
+      msgInput.value = typeof lastUser.content === "string" ? lastUser.content : "";
+      state.pendingImages = (lastUser.images || []).map((uri, i) => ({ dataUri: uri, name: `image-${i}` }));
+      renderPendingImages();
+      // Remove last user from cache too (sendMessage will re-add it)
+      cache.pop();
+      await sendMessage();
+    } catch (e) {
+      showToast("Retry failed: " + e.message);
+    }
+  }
+
+  // ── Image handling ─────────────────────────────────────────────────────
+  function handleFiles(files) {
+    [...files].forEach(file => {
+      if (!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        state.pendingImages.push({ dataUri: e.target.result, name: file.name });
+        renderPendingImages();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderPendingImages() {
+    pendingImgs.innerHTML = state.pendingImages.map((p, i) => `
+      <div class="pending-thumb-wrapper">
+        <img src="${p.dataUri}" class="pending-thumb" title="${escHtml(p.name)}" />
+        <button class="remove-thumb" data-i="${i}">×</button>
+      </div>
+    `).join("");
+    pendingImgs.querySelectorAll(".remove-thumb").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.pendingImages.splice(+btn.dataset.i, 1);
+        renderPendingImages();
+      });
+    });
+  }
+
+  function clearPendingImages() {
+    state.pendingImages = [];
+    pendingImgs.innerHTML = "";
+  }
+
+  // ── Delete conversation ────────────────────────────────────────────────
+  async function deleteConversation(id) {
+    const targetId = id || state.activeId;
+    if (!targetId) return;
+    if (!confirm("Delete this conversation?")) return;
+    try {
+      await fetch(`/api/conversations/${targetId}`, { method: "DELETE" });
+      delete msgCache[targetId];
+      state.conversations = state.conversations.filter(c => c.id !== targetId);
+      if (state.activeId === targetId) {
+        state.activeId = null;
+        messages.innerHTML = `
+          <div id="empty-state">
+            <div class="icon">⚗️</div>
+            <h2>AI Playground</h2>
+            <p>Select a conversation or start a new one.</p>
+          </div>
+        `;
+        agentName.textContent = "AI Playground";
+        modelBadge.textContent = "";
+      }
+      renderConvList(searchInput.value);
+    } catch (e) {
+      showToast("Delete failed");
+    }
+  }
+
+  // ── Agent Editor ───────────────────────────────────────────────────────
+  const aeOverlay    = $("agent-editor-overlay");
+  const aeAgentList  = $("ae-agent-list");
+  const aeName       = $("ae-name");
+  const aeDesc       = $("ae-description");
+  const aeSystem     = $("ae-system");
+  const aeUser       = $("ae-user");
+  const aeToolsList  = $("ae-tools-list");
+  const aeSaveBtn    = $("ae-save-btn");
+
+  let aeOriginalName = null;   // name as loaded from disk (for rename detection)
+  let aeAllTools = [];         // [{name, description}] from /api/tools
+  let aeAgents = [];           // [{name, description}] from /api/agents
+
+  async function openAgentEditor() {
+    // Load tools and agent list in parallel
+    try {
+      const [toolsRes, agentsRes] = await Promise.all([
+        fetch("/api/tools"),
+        fetch("/api/agents"),
+      ]);
+      aeAllTools = await toolsRes.json();
+      aeAgents   = await agentsRes.json();
+    } catch (e) {
+      showToast("Failed to load agent data");
+      return;
+    }
+
+    renderAeAgentList();
+    // Load first agent by default, or show blank if none
+    if (aeAgents.length > 0) {
+      await loadAgentIntoEditor(aeAgents[0].name);
+    } else {
+      clearEditorFields();
+    }
+
+    aeOverlay.classList.add("open");
+  }
+
+  function closeAgentEditor() {
+    aeOverlay.classList.remove("open");
+  }
+
+  function renderAeAgentList() {
+    aeAgentList.innerHTML = aeAgents.map(a => `
+      <div class="ae-agent-item ${a.name === aeOriginalName ? "active" : ""}"
+           data-name="${escHtml(a.name)}">${escHtml(a.name)}</div>
+    `).join("") || '<div style="padding:12px 14px;font-size:12px;color:var(--text2)">No agents yet</div>';
+
+    aeAgentList.querySelectorAll(".ae-agent-item").forEach(el => {
+      el.addEventListener("click", () => loadAgentIntoEditor(el.dataset.name));
+    });
+  }
+
+  async function loadAgentIntoEditor(name) {
+    try {
+      const r = await fetch(`/api/agents/${encodeURIComponent(name)}`);
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+
+      aeOriginalName   = data.name;
+      aeName.value     = data.name;
+      aeDesc.value     = data.description;
+      aeSystem.value   = data.system_prompt;
+      aeUser.value     = data.user_prompt;
+
+      renderAeTools(data.tools);
+      renderAeAgentList();   // re-render to update active highlight
+    } catch (e) {
+      showToast("Failed to load agent: " + e.message);
+    }
+  }
+
+  function clearEditorFields() {
+    aeOriginalName = null;
+    aeName.value   = "";
+    aeDesc.value   = "";
+    aeSystem.value = "";
+    aeUser.value   = "";
+    renderAeTools([]);
+    renderAeAgentList();
+  }
+
+  function renderAeTools(enabledNames) {
+    aeToolsList.innerHTML = aeAllTools.map(t => `
+      <label class="ae-tool-item">
+        <input type="checkbox" value="${escHtml(t.name)}" ${enabledNames.includes(t.name) ? "checked" : ""} />
+        <div>
+          <div class="ae-tool-name">${escHtml(t.name)}</div>
+          <div class="ae-tool-desc">${escHtml(t.description)}</div>
+        </div>
+      </label>
+    `).join("") || '<div style="color:var(--text2);font-size:12px">No tools registered</div>';
+  }
+
+  async function saveAgent() {
+    const newName = aeName.value.trim();
+    if (!newName) { showToast("Agent name is required"); return; }
+    if (!aeSystem.value.trim()) { showToast("System prompt is required"); return; }
+
+    const tools = [...aeToolsList.querySelectorAll("input[type=checkbox]:checked")]
+      .map(cb => cb.value);
+
+    const urlName = aeOriginalName || newName;
+    aeSaveBtn.disabled = true;
+    try {
+      const r = await fetch(`/api/agents/${encodeURIComponent(urlName)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newName,
+          system_prompt: aeSystem.value,
+          user_prompt: aeUser.value,
+          description: aeDesc.value,
+          tools,
+        }),
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || "Save failed");
+
+      // Refresh agent list
+      const agentsRes = await fetch("/api/agents");
+      aeAgents = await agentsRes.json();
+      aeOriginalName = newName;
+      renderAeAgentList();
+      showToast(`Agent "${newName}" saved`, 2000);
+    } catch (e) {
+      showToast("Save failed: " + e.message);
+    } finally {
+      aeSaveBtn.disabled = false;
+    }
+  }
+
+  // Tab switching
+  document.querySelectorAll(".ae-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".ae-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".ae-tab-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      $(`ae-tab-${tab.dataset.tab}`).classList.add("active");
+    });
+  });
+
+  // ── System prompt panel ────────────────────────────────────────────────
+  promptToggle.addEventListener("click", async () => {
+    const isOpen = promptPanel.classList.toggle("open");
+    promptToggle.textContent = isOpen ? "System Prompt ▴" : "System Prompt ▾";
+    if (isOpen && !promptPanel.dataset.loaded) {
+      promptPanel.textContent = "Loading...";
+      try {
+        const conv = state.conversations.find(c => c.id === state.activeId);
+        const agentSlug = conv?.agent_name || "example";
+        const r = await fetch(`/api/agent-info/${encodeURIComponent(agentSlug)}/system-prompt`);
+        const data = await r.json();
+        promptPanel.textContent = data.content || "(no system prompt)";
+        promptPanel.dataset.loaded = "1";
+      } catch {
+        promptPanel.textContent = "(could not load system prompt)";
+      }
+    }
+  });
+
+  // ── UI helpers ─────────────────────────────────────────────────────────
+  function setUIStreaming(on) {
+    sendBtn.disabled = on;
+    sendBtn.textContent = on ? "…" : "Send";
+    msgInput.disabled = on;
+  }
+
+  function scrollToBottom() {
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function showToast(msg, duration = 4000) {
+    const toast = $("toast");
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), duration);
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function autoResizeTextarea() {
+    msgInput.style.height = "auto";
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 200) + "px";
+  }
+
+  // ── Event listeners ────────────────────────────────────────────────────
+  newChatBtn.addEventListener("click", newConversation);
+  $("edit-agents-btn").addEventListener("click", openAgentEditor);
+  attachBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", e => handleFiles(e.target.files));
+  sendBtn.addEventListener("click", sendMessage);
+  searchInput.addEventListener("input", e => renderConvList(e.target.value));
+
+  // New conversation modal listeners
+  $("modal-close").addEventListener("click", closeModal);
+  modalOverlay.addEventListener("click", e => { if (e.target === modalOverlay) closeModal(); });
+  modalSubmit.addEventListener("click", submitModal);
+  modalModel.addEventListener("keydown", e => { if (e.key === "Enter") submitModal(); });
+
+  // Agent editor listeners
+  $("ae-close-btn").addEventListener("click", closeAgentEditor);
+  aeOverlay.addEventListener("click", e => { if (e.target === aeOverlay) closeAgentEditor(); });
+  $("ae-new-agent-btn").addEventListener("click", clearEditorFields);
+  aeSaveBtn.addEventListener("click", saveAgent);
+
+  msgInput.addEventListener("input", autoResizeTextarea);
+
+  msgInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      sendMessage();
+    }
+    if (e.key === "Escape") {
+      if (aeOverlay.classList.contains("open")) closeAgentEditor();
+      else if (modalOverlay.classList.contains("open")) closeModal();
+      else cancelStream();
+    }
+  });
+
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "n") {
+      e.preventDefault();
+      newConversation();
+    }
+    if (e.key === "Escape") {
+      if (aeOverlay.classList.contains("open")) closeAgentEditor();
+      else if (modalOverlay.classList.contains("open")) closeModal();
+      else if (state.isStreaming) cancelStream();
+    }
+  });
+
+  // Paste images from clipboard
+  document.addEventListener("paste", e => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const imageItems = [...items].filter(i => i.type.startsWith("image/"));
+    if (imageItems.length === 0) return;
+    e.preventDefault();
+    imageItems.forEach(item => {
+      const file = item.getAsFile();
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          state.pendingImages.push({ dataUri: ev.target.result, name: "pasted-image" });
+          renderPendingImages();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  });
+
+  // Drag-and-drop images onto the chat
+  messages.addEventListener("dragover", e => e.preventDefault());
+  messages.addEventListener("drop", e => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+  });
+
+  // ── Boot ───────────────────────────────────────────────────────────────
+  init();
+</script>
+</body>
+</html>
