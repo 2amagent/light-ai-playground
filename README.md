@@ -7,22 +7,22 @@ A local developer tool for experimenting with LLM agents across multiple provide
 
 ## Why this playground?
 
-Most chat playgrounds are wrappers around a single API call. This one is built for **agent experimentation** — where the model takes actions, asks clarifying questions, and works with your local environment.
+Most chat playgrounds are wrappers around a single API call. This one is built for **agent experimentation** - where the model takes actions, asks clarifying questions, and works with your local environment.
 
 - **The model can ask you structured questions mid-conversation.**
-The `ask_user` tool lets an agent pause and present you with a choice card before proceeding — single or multi-select. This is closer to a real agentic workflow than a back-and-forth chat, and it's something you won't find in typical playgrounds.
+The `ask_user` tool lets an agent pause and present you with a choice card before proceeding - single or multi-select. This is closer to a real agentic workflow than a back-and-forth chat, and it's something you won't find in typical playgrounds.
 
 - **Your private and intranet models work out of the box.**
-Point the Base URL field at any OpenAI-compatible endpoint — a model running on your own server, behind a VPN, or on a local Ollama instance. No traffic leaves your network. Cloud playgrounds can't do this by definition.
+Point the Base URL field at any OpenAI-compatible endpoint - a model running on your own server, behind a VPN, or on a local Ollama instance. No traffic leaves your network. Cloud playgrounds can't do this by definition.
 
 - **Tool results never leave the server.**
 When an agent runs a shell command or executes a tool, the output is stored server-side and injected directly into the next LLM call. It never round-trips through your browser. Sensitive codebase contents stay where they are.
 
 - **Agents are markdown files, hot-reloaded.**
-Edit a system prompt in your editor and the next message picks it up — no restart, no form submission, no redeploy. Rapid agent iteration with no friction.
+Edit a system prompt in your editor and the next message picks it up - no restart, no form submission, no redeploy. Rapid agent iteration with no friction.
 
 - **Each conversation is independently configured.**
-Different agent, model, provider, and API key per conversation — all open simultaneously in the same session. Switch between GPT-4o and Claude mid-session without touching settings.
+Different agent, model, provider, and API key per conversation - all open simultaneously in the same session. Switch between GPT-4o and Claude mid-session without touching settings.
 
 ![Sidebar showing multiple conversations, each with its own agent and model](docs/screenshots/zoom-sidebar.png)
 
@@ -30,9 +30,9 @@ Different agent, model, provider, and API key per conversation — all open simu
 `uv sync` and `uv run python main.py` is everything. Single HTML file, no Node.js, no npm, no bundler. Gradio and Chainlit both require more ceremony to get running and customise.
 
 **Real local tool execution, safely.**
-Agents can run `git`, `grep`, `find`, `cat` and a handful of other shell commands against your local filesystem via an explicit allowlist — no Docker, no sandbox configuration. Built for the code-exploration and devops agent use cases.
+Agents can run `git`, `grep`, `find`, `cat` and a handful of other shell commands against your local filesystem via an explicit allowlist - no Docker, no sandbox configuration. Built for the code-exploration and devops agent use cases.
 
-You can also drop in an image and ask questions about it — paste, drag-and-drop, or attach from disk.
+You can also drop in an image and ask questions about it - paste, drag-and-drop, or attach from disk.
 
 ![Chat input with an architecture diagram attached](docs/screenshots/zoom-chat-input.png)
 
@@ -40,12 +40,12 @@ You can also drop in an image and ask questions about it — paste, drag-and-dro
 
 ## What it does
 
-- **Multi-provider** — Anthropic, OpenAI, Together.ai, Replicate, Ollama, or any OpenAI-compatible endpoint
-- **Per-conversation config** — choose agent, model, and API key when starting each conversation
-- **Agent editor** — create and edit agents directly in the UI (system prompt, user prompt, tools)
-- **Tool use** — agents can run shell commands, ask structured questions, and more
-- **Streaming** — responses stream token by token with markdown rendering
-- **No build step** — pure HTML/CSS/JS frontend, no npm, no bundler
+- **Multi-provider** - Anthropic, OpenAI, Together.ai, Replicate, Ollama, or any OpenAI-compatible endpoint
+- **Per-conversation config** - choose agent, model, and API key when starting each conversation
+- **Agent editor** - create and edit agents directly in the UI (system prompt, user prompt, tools)
+- **Tool use** - agents can run shell commands, ask structured questions, and more
+- **Streaming** - responses stream token by token with markdown rendering
+- **No build step** - pure HTML/CSS/JS frontend, no npm, no bundler
 
 ---
 
@@ -60,7 +60,7 @@ uv sync
 uv run main.py
 ```
 
-The browser opens automatically. Click **New Chat** to start a conversation — you'll be asked which agent to use and what model.
+The browser opens automatically. Click **New Chat** to start a conversation - you'll be asked which agent to use and what model.
 
 API keys are entered per-conversation in the UI. Alternatively, set them as environment variables (via export or in the .env file) and leave the UI field blank:
 
@@ -88,7 +88,7 @@ TEMPERATURE=0.7
 
 > **Conversations are not persisted by default.** Restarting the server clears all conversation history. Set `PERSIST=true` to save conversations to `conversations.json` so they survive restarts. Note that API keys are never written to disk regardless of this setting.
 
-None of these are required — defaults work out of the box.
+None of these are required - defaults work out of the box.
 
 ---
 
@@ -97,15 +97,15 @@ None of these are required — defaults work out of the box.
 ### Via the UI
 
 Click **✎ Edit Agents** in the sidebar → **+ New Agent**. Fill in:
-- **Name** — used as the folder name under `agents/`
-- **Description** — shown in the New Conversation dropdown
-- **System Prompt** — the agent's core instructions
-- **User Prompt** — (optional) text prepended to every user message
-- **Tools** — which tools the agent is allowed to use
+- **Name** - used as the folder name under `agents/`
+- **Description** - shown in the New Conversation dropdown
+- **System Prompt** - the agent's core instructions
+- **User Prompt** - (optional) text prepended to every user message
+- **Tools** - which tools the agent is allowed to use
 
 Click **Save Agent**. The agent appears immediately in the New Conversation modal.
 
-![Agent editor — system prompt, user prompt, and tools tabs](docs/screenshots/screenshot-agent-editor.png)
+![Agent editor - system prompt, user prompt, and tools tabs](docs/screenshots/screenshot-agent-editor.png)
 
 ### Via files
 
@@ -114,13 +114,13 @@ Create a folder under `agents/` with a `system.md` file:
 ```
 agents/
   my-agent/
-    system.md        # required — the system prompt
-    user.md          # optional — prepended to every user message
-    description.md   # optional — shown in the UI dropdown
-    tools.md         # optional — list of allowed tools, one per line
+    system.md        # required - the system prompt
+    user.md          # optional - prepended to every user message
+    description.md   # optional - shown in the UI dropdown
+    tools.md         # optional - list of allowed tools, one per line
 ```
 
-All files are **hot-reloaded** — edits take effect on the next message without restarting.
+All files are **hot-reloaded** - edits take effect on the next message without restarting.
 
 If `tools.md` is absent, no tools are available to the agent. To enable tools:
 
@@ -161,15 +161,15 @@ git  sed  cat  head  find  ls  grep
 ```
 
 Parameters:
-- `command` — the full command string, e.g. `git log --oneline -10`
-- `working_dir` — optional path within the project root to run from
-- `max_lines` — output line limit (default 200, max 1000)
+- `command` - the full command string, e.g. `git log --oneline -10`
+- `working_dir` - optional path within the project root to run from
+- `max_lines` - output line limit (default 200, max 1000)
 
-The agent receives the output and continues the conversation. The result is stored server-side — it never round-trips through the browser.
+The agent receives the output and continues the conversation. The result is stored server-side - it never round-trips through the browser.
 
 ### `ask_user`
 
-Lets the agent ask a structured question with predefined options. The UI renders a choice card — single-select or multi-select — and the agent continues once the user picks an option.
+Lets the agent ask a structured question with predefined options. The UI renders a choice card - single-select or multi-select - and the agent continues once the user picks an option.
 
 ![An agent presenting a structured choice card mid-conversation](docs/screenshots/zoom-first-card.png)
 
@@ -221,11 +221,11 @@ async def my_tool(args: dict, tool_call_id: str) -> ToolResult:
 ```
 
 **`ToolResult` fields:**
-- `evt_type` — always `EVT_TOOL_RESULT` for standard tools
-- `payload` — sent to the browser for display (accordion in the UI); `content` is what's shown, `is_error` controls styling
-- `result_content` — stored server-side and injected into the LLM's message history; the browser never sees this value
+- `evt_type` - always `EVT_TOOL_RESULT` for standard tools
+- `payload` - sent to the browser for display (accordion in the UI); `content` is what's shown, `is_error` controls styling
+- `result_content` - stored server-side and injected into the LLM's message history; the browser never sees this value
 
-If the tool should pause and wait for user input (like `ask_user`), set `result_content=""` initially — `api.py` will fill it from the user's next message.
+If the tool should pause and wait for user input (like `ask_user`), set `result_content=""` initially - `api.py` will fill it from the user's next message.
 
 ### 2. Register in `app/tools/__init__.py`
 
@@ -240,11 +240,11 @@ from app.tools import ask_user, run_command, your_tool  # noqa: F401
 my_tool
 ```
 
-Only agents that list the tool in `tools.md` will have access to it. No other files need to change — `streaming.py`, `api.py`, and `events.py` pick it up automatically.
+Only agents that list the tool in `tools.md` will have access to it. No other files need to change - `streaming.py`, `api.py`, and `events.py` pick it up automatically.
 
 ### Error handling
 
-Return a `ToolResult` with `is_error=True` for recoverable failures — the LLM will see the error message and can decide how to proceed:
+Return a `ToolResult` with `is_error=True` for recoverable failures - the LLM will see the error message and can decide how to proceed:
 
 ```python
 return ToolResult(
