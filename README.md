@@ -9,26 +9,24 @@ A local developer tool for experimenting with LLM agents across multiple provide
 
 Most chat playgrounds are wrappers around a single API call. This one is built for **agent experimentation** — where the model takes actions, asks clarifying questions, and works with your local environment.
 
-![Full UI — sidebar, multiple conversations, agent and model visible per tab](docs/screenshots/screenshot-full-ui.png)
-
-**The model can ask you structured questions mid-conversation.**
+- **The model can ask you structured questions mid-conversation.**
 The `ask_user` tool lets an agent pause and present you with a choice card before proceeding — single or multi-select. This is closer to a real agentic workflow than a back-and-forth chat, and it's something you won't find in typical playgrounds.
 
-**Your private and intranet models work out of the box.**
+- **Your private and intranet models work out of the box.**
 Point the Base URL field at any OpenAI-compatible endpoint — a model running on your own server, behind a VPN, or on a local Ollama instance. No traffic leaves your network. Cloud playgrounds can't do this by definition.
 
-**Tool results never leave the server.**
+- **Tool results never leave the server.**
 When an agent runs a shell command or executes a tool, the output is stored server-side and injected directly into the next LLM call. It never round-trips through your browser. Sensitive codebase contents stay where they are.
 
-**Agents are markdown files, hot-reloaded.**
+- **Agents are markdown files, hot-reloaded.**
 Edit a system prompt in your editor and the next message picks it up — no restart, no form submission, no redeploy. Rapid agent iteration with no friction.
 
-**Each conversation is independently configured.**
+- **Each conversation is independently configured.**
 Different agent, model, provider, and API key per conversation — all open simultaneously in the same session. Switch between GPT-4o and Claude mid-session without touching settings.
 
 ![Sidebar showing multiple conversations, each with its own agent and model](docs/screenshots/zoom-sidebar.png)
 
-**Zero frontend setup.**
+- **Zero frontend setup.**
 `uv sync` and `uv run python main.py` is everything. Single HTML file, no Node.js, no npm, no bundler. Gradio and Chainlit both require more ceremony to get running and customise.
 
 **Real local tool execution, safely.**
