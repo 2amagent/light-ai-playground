@@ -47,6 +47,7 @@ if __name__ == "__main__":
     print()
     print("  AI Playground")
     print(f"  URL   : {url}")
+    print("  by The 2 a.m. Agent · https://2amagent.com")
     if settings.persist:
         print("  Persist: on (conversations.json)")
     print()

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="author" content="The 2 a.m. Agent" />
+  <meta name="description" content="Local AI agent playground for experimenting with LLM agents across providers" />
   <title>AI Playground</title>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -962,6 +964,17 @@
     }
     #ae-save-btn:hover { opacity: 0.85; }
     #ae-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Attribution ─────────────────────────────────────────────────────── */
+    #credit {
+      text-align: right;
+      padding: 2px 14px 4px;
+      font-size: 10px;
+      color: var(--border);
+      flex-shrink: 0;
+    }
+    #credit a { color: inherit; text-decoration: none; }
+    #credit a:hover { color: var(--text2); }
   </style>
 </head>
 <body>
@@ -1101,6 +1114,7 @@
     </div>
     <div id="input-hint">Ctrl+Enter send · Ctrl+N new chat · Esc cancel</div>
   </div>
+  <div id="credit"><a href="https://2amagent.com" target="_blank" rel="noopener">The 2 a.m. Agent</a></div>
 </div>
 
 <div id="toast"></div>

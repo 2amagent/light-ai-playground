@@ -1,8 +1,12 @@
 [project]
 name = "ai-playground"
 version = "0.1.0"
-description = "Local AI agent playground"
+description = "Local AI agent playground for experimenting with LLM agents across providers"
 requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [
+    { name = "The 2 a.m. Agent" },
+]
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
@@ -11,6 +15,10 @@ dependencies = [
     "pydantic-settings>=2.6.0",
     "aiofiles>=24.1.0",
 ]
+
+[project.urls]
+Homepage = "https://2amagent.com"
+Repository = "https://github.com/2amagent/ai-playground"
 
 [dependency-groups]
 dev = []

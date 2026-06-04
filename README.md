@@ -1,5 +1,8 @@
 # AI Playground
 
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![By The 2 a.m. Agent](https://img.shields.io/badge/by-The%202%20a.m.%20Agent-8b5cf6)](https://2amagent.com)
+
 A local developer tool for experimenting with LLM agents across multiple providers. Create agents by writing markdown files, launch the server, and get a chat interface in your browser.
 
 ## What it does
@@ -251,3 +254,7 @@ Press `R + Enter` in the terminal running `main.py` to restart the server withou
 - The command allowlist (`git`, `grep`, etc.) is enforced server-side regardless of what the model requests
 - Tool results are stored server-side — the frontend sends a `[tool_results_ready]` signal with no data payload, preventing result tampering
 - `.env` is gitignored — API keys set via environment variables are never committed
+
+---
+
+Made with ☕ by [The 2 a.m. Agent](https://2amagent.com) · [MIT License](LICENSE)
