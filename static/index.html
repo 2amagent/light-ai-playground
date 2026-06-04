@@ -1198,6 +1198,8 @@
     await loadConversations();
     if (state.conversations.length > 0) {
       await selectConversation(state.conversations[0].id);
+    } else {
+      await newConversation();
     }
   }
 
