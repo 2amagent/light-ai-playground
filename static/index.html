@@ -765,6 +765,35 @@
     #modal-submit:hover { opacity: 0.85; }
     #modal-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* ── Model autocomplete dropdown ─────────────────────────────────────── */
+    .model-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0; right: 0;
+      background: var(--bg3);
+      border: 1px solid var(--accent);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 300;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .model-suggestion-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .model-suggestion-item:hover,
+    .model-suggestion-item.active {
+      background: var(--accent);
+      color: #0d1117;
+    }
+
     /* ── Edit Agents button ──────────────────────────────────────────────── */
     #edit-agents-btn {
       width: 100%;
@@ -993,9 +1022,10 @@
       <select id="modal-agent"></select>
     </div>
 
-    <div class="modal-field">
+    <div class="modal-field" style="position:relative">
       <label>Model</label>
       <input id="modal-model" type="text" placeholder="e.g. anthropic/claude-haiku-4-5" autocomplete="off" />
+      <div id="model-suggestions" class="model-suggestions" style="display:none"></div>
     </div>
 
     <div class="modal-field">
@@ -1134,13 +1164,27 @@
 
   // Curated model list for the modal dropdown
   const KNOWN_MODELS = [
+    // Anthropic
     "anthropic/claude-haiku-4-5",
     "anthropic/claude-sonnet-4-6",
     "anthropic/claude-opus-4-5",
+    // OpenAI
     "openai/gpt-4o",
     "openai/gpt-4o-mini",
+    "openai/o1",
+    "openai/o3-mini",
+    // Together.ai
     "together_ai/Qwen/Qwen2.5-7B-Instruct-Turbo",
+    "together_ai/meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "together_ai/mistralai/Mistral-7B-Instruct-v0.3",
+    // Groq
+    "groq/llama3-8b-8192",
+    "groq/llama3-70b-8192",
+    "groq/mixtral-8x7b-32768",
+    // Ollama
     "ollama/llama3",
+    "ollama/mistral",
+    "ollama/gemma3",
   ];
 
   // Provider → env var name (for the "uses X from environment" hint)
@@ -2112,7 +2156,69 @@
     if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
   });
 
+  // ── Model autocomplete ─────────────────────────────────────────────────
+  function initModelAutocomplete() {
+    const input = $("modal-model");
+    const list  = $("model-suggestions");
+    let activeIdx = -1;
+
+    function getItems() {
+      return list.querySelectorAll(".model-suggestion-item");
+    }
+
+    function setActive(idx) {
+      const items = getItems();
+      items.forEach(el => el.classList.remove("active"));
+      activeIdx = Math.max(-1, Math.min(idx, items.length - 1));
+      if (activeIdx >= 0) {
+        items[activeIdx].classList.add("active");
+        items[activeIdx].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function showSuggestions(filter) {
+      const q = (filter || "").toLowerCase();
+      const matches = KNOWN_MODELS.filter(m => !q || m.toLowerCase().includes(q));
+      if (matches.length === 0) { list.style.display = "none"; return; }
+      list.innerHTML = matches.map(m =>
+        `<div class="model-suggestion-item">${escHtml(m)}</div>`
+      ).join("");
+      list.querySelectorAll(".model-suggestion-item").forEach(el => {
+        el.addEventListener("mousedown", e => {
+          e.preventDefault(); // keep focus on input
+          input.value = el.textContent;
+          list.style.display = "none";
+          activeIdx = -1;
+          input.dispatchEvent(new Event("input"));
+        });
+      });
+      activeIdx = -1;
+      list.style.display = "block";
+    }
+
+    input.addEventListener("input",  () => showSuggestions(input.value));
+    input.addEventListener("focus",  () => showSuggestions(input.value));
+    input.addEventListener("blur",   () => setTimeout(() => { list.style.display = "none"; activeIdx = -1; }, 150));
+    input.addEventListener("keydown", e => {
+      if (list.style.display === "none") return;
+      const items = getItems();
+      if (e.key === "ArrowDown")  { e.preventDefault(); setActive(activeIdx + 1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); setActive(activeIdx - 1); }
+      else if (e.key === "Enter" && activeIdx >= 0) {
+        e.preventDefault();
+        input.value = items[activeIdx].textContent;
+        list.style.display = "none";
+        activeIdx = -1;
+        input.dispatchEvent(new Event("input"));
+      } else if (e.key === "Escape") {
+        list.style.display = "none";
+        activeIdx = -1;
+      }
+    });
+  }
+
   // ── Boot ───────────────────────────────────────────────────────────────
+  initModelAutocomplete();
   init();
 </script>
 </body>
