@@ -53,6 +53,8 @@ MAX_TOKENS=4096
 TEMPERATURE=0.7
 ```
 
+> **Conversations are not persisted by default.** Restarting the server clears all conversation history. Set `PERSIST=true` to save conversations to `conversations.json` so they survive restarts. Note that API keys are never written to disk regardless of this setting.
+
 None of these are required — defaults work out of the box.
 
 ---
