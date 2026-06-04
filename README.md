@@ -9,6 +9,8 @@ A local developer tool for experimenting with LLM agents across multiple provide
 
 Most chat playgrounds are wrappers around a single API call. This one is built for **agent experimentation** — where the model takes actions, asks clarifying questions, and works with your local environment.
 
+![Full UI — sidebar, multiple conversations, agent and model visible per tab](docs/screenshots/screenshot-full-ui.png)
+
 **The model can ask you structured questions mid-conversation.**
 The `ask_user` tool lets an agent pause and present you with a choice card before proceeding — single or multi-select. This is closer to a real agentic workflow than a back-and-forth chat, and it's something you won't find in typical playgrounds.
 
@@ -24,11 +26,17 @@ Edit a system prompt in your editor and the next message picks it up — no rest
 **Each conversation is independently configured.**
 Different agent, model, provider, and API key per conversation — all open simultaneously in the same session. Switch between GPT-4o and Claude mid-session without touching settings.
 
+![Sidebar showing multiple conversations, each with its own agent and model](docs/screenshots/zoom-sidebar.png)
+
 **Zero frontend setup.**
 `uv sync` and `uv run python main.py` is everything. Single HTML file, no Node.js, no npm, no bundler. Gradio and Chainlit both require more ceremony to get running and customise.
 
 **Real local tool execution, safely.**
 Agents can run `git`, `grep`, `find`, `cat` and a handful of other shell commands against your local filesystem via an explicit allowlist — no Docker, no sandbox configuration. Built for the code-exploration and devops agent use cases.
+
+You can also drop in an image and ask questions about it — paste, drag-and-drop, or attach from disk.
+
+![Chat input with an architecture diagram attached](docs/screenshots/zoom-chat-input.png)
 
 ---
 
@@ -40,22 +48,6 @@ Agents can run `git`, `grep`, `find`, `cat` and a handful of other shell command
 - **Tool use** — agents can run shell commands, ask structured questions, and more
 - **Streaming** — responses stream token by token with markdown rendering
 - **No build step** — pure HTML/CSS/JS frontend, no npm, no bundler
-
----
-
-## Screenshots
-
-**Attach images and ask questions about them**
-
-![Chat with image attachment](docs/screenshots/chat-with-image.png)
-
-**Agents ask structured questions with choice cards**
-
-![ask_user choice cards](docs/screenshots/ask-user-cards.png)
-
-**Multi-turn clarification before the agent proceeds**
-
-![Multi-turn questions](docs/screenshots/multi-turn-questions.png)
 
 ---
 
@@ -114,6 +106,8 @@ Click **✎ Edit Agents** in the sidebar → **+ New Agent**. Fill in:
 - **Tools** — which tools the agent is allowed to use
 
 Click **Save Agent**. The agent appears immediately in the New Conversation modal.
+
+![Agent editor — system prompt, user prompt, and tools tabs](docs/screenshots/screenshot-agent-editor.png)
 
 ### Via files
 
@@ -177,7 +171,13 @@ The agent receives the output and continues the conversation. The result is stor
 
 ### `ask_user`
 
-Lets the agent ask a structured question with predefined options. The UI renders a choice card (single-select or multi-select). The agent continues after the user picks an option.
+Lets the agent ask a structured question with predefined options. The UI renders a choice card — single-select or multi-select — and the agent continues once the user picks an option.
+
+![An agent presenting a structured choice card mid-conversation](docs/screenshots/zoom-first-card.png)
+
+Agents can chain questions across turns, gathering the information they need before acting. Each answer is confirmed visually before the next question appears.
+
+![Selection confirmed, followed immediately by the next question](docs/screenshots/zoom-flow.png)
 
 ---
 
