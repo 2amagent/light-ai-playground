@@ -1,4 +1,4 @@
-# AI Playground
+# Light AI Playground
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![By The 2 a.m. Agent](https://img.shields.io/badge/by-The%202%20a.m.%20Agent-8b5cf6)](https://2amagent.com)

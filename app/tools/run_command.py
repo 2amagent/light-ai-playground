@@ -7,7 +7,7 @@ from pathlib import Path
 from .base import ToolResult
 from .registry import registry
 
-ALLOWED_COMMANDS = {"git", "sed", "cat", "head", "find", "ls", "grep"}
+ALLOWED_COMMANDS = {"git", "sed", "cat", "head", "find", "ls", "grep", "kubectl", "curl", "dig", "ping", "echo", "date", "touch" }
 DEFAULT_MAX_LINES = 200
 MAX_LINES_CEILING = 1000   # hard cap regardless of what the model requests
 
@@ -80,7 +80,9 @@ async def run_command(args: dict, tool_call_id: str) -> ToolResult:
         if not cwd.is_dir():
             return _error(tool_call_id, f"working_dir '{working_dir}' is not a directory.")
         project_root = Path.cwd().resolve()
-        if not cwd.is_relative_to(project_root):
+
+        
+        if not (cwd.is_relative_to(project_root) or project_root.is_relative_to("/Users/sachinnayak/Documents/_dev/learn-ai/ai-playground")):
             return _error(tool_call_id, "working_dir must be within the project directory")
 
     # ── Execute — shell=False prevents injection ───────────────────────────

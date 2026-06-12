@@ -318,8 +318,8 @@ async def chat(req: ChatRequest):
             conv.title = req.message[:60] + ("..." if len(req.message) > 60 else "")
         conv.messages.append({"role": "user", "content": content})
 
-    _logger.debug("Conv messages before LLM call:\n%s",
-        json.dumps(conv.messages, indent=2, default=str))
+    # _logger.debug("Conv messages before LLM call:\n%s",
+    #     json.dumps(conv.messages, indent=2, default=str))
 
     full_content: list[str] = []
 
