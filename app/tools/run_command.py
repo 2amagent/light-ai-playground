@@ -80,9 +80,7 @@ async def run_command(args: dict, tool_call_id: str) -> ToolResult:
         if not cwd.is_dir():
             return _error(tool_call_id, f"working_dir '{working_dir}' is not a directory.")
         project_root = Path.cwd().resolve()
-
-        
-        if not (cwd.is_relative_to(project_root) or project_root.is_relative_to("/Users/sachinnayak/Documents/_dev/learn-ai/ai-playground")):
+        if not cwd.is_relative_to(project_root):
             return _error(tool_call_id, "working_dir must be within the project directory")
 
     # ── Execute — shell=False prevents injection ───────────────────────────
