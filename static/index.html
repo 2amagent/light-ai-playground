@@ -206,6 +206,18 @@
     }
     #prompt-toggle:hover { border-color: var(--border); color: var(--text); }
 
+    #download-json-btn {
+      font-size: 11px;
+      color: var(--text2);
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: all var(--transition);
+      margin-left: auto;
+    }
+    #download-json-btn:hover { border-color: var(--border); color: var(--text); }
+
     #system-prompt-panel {
       display: none;
       padding: 10px 16px;
@@ -361,6 +373,14 @@
       color: var(--text2);
       margin-top: 4px;
       padding: 0 4px;
+    }
+
+    .msg-timestamp {
+      font-size: 10px;
+      color: var(--text2);
+      margin-top: 3px;
+      padding: 0 4px;
+      opacity: 0.6;
     }
 
     .img-thumbnail {
@@ -1123,6 +1143,7 @@
       <span id="agent-name">AI Playground</span>
       <span id="model-badge"></span>
       <button id="prompt-toggle" style="display:none">System Prompt ▾</button>
+      <button id="download-json-btn" style="display:none" title="Download conversation as JSON">⬇ JSON</button>
     </div>
     <div id="system-prompt-panel"></div>
   </div>
@@ -1309,6 +1330,7 @@
       agentName.textContent = conv.agent_name || "AI Playground";
       modelBadge.textContent = conv.model || "";
     }
+    $("download-json-btn").style.display = "";
 
     renderStoredMessages(id);
   }
@@ -1324,6 +1346,34 @@
   }
 
   const TOOL_RESUME_SIGNAL = "[tool_results_ready]";
+
+  function _fmtTs(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      hour: "numeric", minute: "2-digit", hour12: true,
+      month: "short", day: "numeric",
+    });
+  }
+
+  function downloadChatJSON() {
+    const conv = state.conversations.find(c => c.id === state.activeId);
+    if (!conv) return;
+    const messages = msgCache[state.activeId] || [];
+    const payload = {
+      id: conv.id,
+      title: conv.title,
+      agent: conv.agent_name,
+      model: conv.model,
+      exported_at: new Date().toISOString(),
+      messages,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${conv.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
   function _makeRow(role) {
     const row = document.createElement("div");
@@ -1378,6 +1428,14 @@
       content.textContent = m.content || "";
     }
     div.appendChild(content);
+
+    if (m.ts) {
+      const tsEl = document.createElement("div");
+      tsEl.className = "msg-timestamp";
+      tsEl.dataset.ts = m.ts;
+      tsEl.textContent = _fmtTs(m.ts);
+      div.appendChild(tsEl);
+    }
 
     if (m.meta) {
       const meta = document.createElement("div");
@@ -1676,7 +1734,7 @@
     const images = state.pendingImages.map(p => p.dataUri);
 
     // Add user message to cache and render
-    const userMsg = { role: "user", content: text, images };
+    const userMsg = { role: "user", content: text, images, ts: new Date().toISOString() };
     if (!msgCache[state.activeId]) msgCache[state.activeId] = [];
     msgCache[state.activeId].push(userMsg);
     appendMessageFromCache(userMsg);
@@ -1764,11 +1822,19 @@
       // Store final text in client cache (questionnaire turns have no rawContent)
       if (ctx.rawContent) {
         const elapsed = ((performance.now() - ctx.startTime) / 1000).toFixed(1);
+        const ts = new Date().toISOString();
         msgCache[state.activeId].push({
           role: "assistant",
           content: ctx.rawContent,
           meta: `↓ ... tokens · ${elapsed}s`,
+          ts,
         });
+        // Inject timestamp into the live bubble immediately (no reload needed)
+        const tsEl = document.createElement("div");
+        tsEl.className = "msg-timestamp";
+        tsEl.dataset.ts = ts;
+        tsEl.textContent = _fmtTs(ts);
+        ctx.div.appendChild(tsEl);
       }
 
     } catch (e) {
@@ -2033,6 +2099,9 @@
       $(`ae-tab-${tab.dataset.tab}`).classList.add("active");
     });
   });
+
+  // ── Download JSON ──────────────────────────────────────────────────────
+  $("download-json-btn").addEventListener("click", downloadChatJSON);
 
   // ── System prompt panel ────────────────────────────────────────────────
   promptToggle.addEventListener("click", async () => {

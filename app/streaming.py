@@ -80,6 +80,11 @@ async def stream_chat_response(
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
+            # Some providers (e.g. together_ai) have stale capability metadata in
+            # LiteLLM and reject tools/tool_choice client-side with
+            # UnsupportedParamsError, even when the model supports tool calling.
+            # This forwards the params through to the provider regardless.
+            kwargs["allowed_openai_params"] = ["tools", "tool_choice"]
 
         _logger.debug(
             "LLM request | model=%s | messages=%d | tools=%s",
